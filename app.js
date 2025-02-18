@@ -12,6 +12,9 @@ async function searchMusic(query) {
 
     try {
         const response = await fetch(`https://benzo-7l47.onrender.com/search?q=${query}`);
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
         const data = await response.json();
         return data;
     } catch (error) {
@@ -28,7 +31,7 @@ searchButton.addEventListener('click', async () => {
     resultsDiv.innerHTML = ''; // Очищаем предыдущие результаты
 
     results.forEach(item => {
-        if (!item.url || !item.thumbnail) {
+        if (!item.url) {
             console.error("Некорректные данные:", item);
             return;
         }
@@ -36,7 +39,10 @@ searchButton.addEventListener('click', async () => {
         // Создаем кнопку с заставкой и названием
         const resultButton = document.createElement('button');
         resultButton.className = 'result-button';
-        resultButton.style.backgroundImage = `url(${item.thumbnail})`;
+
+        // Устанавливаем заставку (если есть) или используем заглушку
+        const thumbnail = item.thumbnail || "https://via.placeholder.com/150";
+        resultButton.style.backgroundImage = `url(${thumbnail})`;
 
         // Добавляем название поверх кнопки
         const title = document.createElement('div');

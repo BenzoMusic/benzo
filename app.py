@@ -20,6 +20,20 @@ YOUTUBE_API_KEY = "AIzaSyBMnIF_OLDZ93uAOgUOSzZHPXOcefSzFXY"
 # Маршрут для поиска музыки
 @app.get("/search")
 async def search(q: str):
+    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={q}&key={YOUTUBE_API_KEY}&type=video"
+    response = requests.get(url)
+    data = response.json()
+    
+    results = [
+        {
+            "title": item["snippet"]["title"],
+            "url": f"https://www.youtube.com/watch?v={item['id']['videoId']}",
+            "thumbnail": item["snippet"]["thumbnails"]["medium"]["url"]  # Добавляем заставку
+        }
+        for item in data["items"]
+    ]
+    return results
+async def search(q: str):
     # Формируем URL для запроса к YouTube API
     url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={q}&key={YOUTUBE_API_KEY}&type=video"
     
