@@ -5,7 +5,7 @@ const audioPlayer = document.getElementById('audio-player');
 
 // Функция для поиска музыки
 async function searchMusic(query) {
-    const response = await fetch(`https://ваш-backend-урл/search?q=${query}`);
+    const response = await fetch(`https://benzo-7l47.onrender.com/search?q=${query}`);
     const data = await response.json();
     return data;
 }
