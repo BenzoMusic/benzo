@@ -42,5 +42,3 @@ searchButton.addEventListener('click', async () => {
         resultsDiv.appendChild(resultButton);
     });
 });
-
-// Инициализация Telegram Web App
