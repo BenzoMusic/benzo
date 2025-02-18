@@ -1,59 +1,56 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import requests
+from fastapi import FastAPI, WebSocket
+from youtube_dl import YoutubeDL
+import json
+import asyncio
 
-# Создаем приложение FastAPI
 app = FastAPI()
 
-# Настройка CORS (Cross-Origin Resource Sharing)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Разрешить запросы со всех доменов
-    allow_credentials=True,
-    allow_methods=["*"],  # Разрешить все HTTP-методы (GET, POST и т.д.)
-    allow_headers=["*"],  # Разрешить все заголовки
-)
+# Глобальные переменные для синхронизации
+current_track = None
+clients = []
 
-# Твой YouTube API Key
-YOUTUBE_API_KEY = "AIzaSyBMnIF_OLDZ93uAOgUOSzZHPXOcefSzFXY"
+# Функция для поиска музыки
+def search_music(query):
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "quiet": True,
+        "extract_flat": True,
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        results = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"]
+    return [
+        {
+            "title": item["title"],
+            "url": item["url"],
+            "thumbnail": item["thumbnail"]
+        }
+        for item in results
+    ]
 
 # Маршрут для поиска музыки
 @app.get("/search")
 async def search(q: str):
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={q}&key={YOUTUBE_API_KEY}&type=video"
-    response = requests.get(url)
-    data = response.json()
-    
-    results = [
-        {
-            "title": item["snippet"]["title"],
-            "url": f"https://www.youtube.com/watch?v={item['id']['videoId']}",
-            "thumbnail": item["snippet"]["thumbnails"]["medium"]["url"]  # Добавляем заставку
-        }
-        for item in data["items"]
-    ]
+    results = search_music(q)
     return results
-async def search(q: str):
-    # Формируем URL для запроса к YouTube API
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={q}&key={YOUTUBE_API_KEY}&type=video"
+
+# WebSocket для синхронизации
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    clients.append(websocket)
     
-    # Выполняем запрос к YouTube API
-    response = requests.get(url)
-    
-    # Если запрос успешен, обрабатываем данные
-    if response.status_code == 200:
-        data = response.json()
-        
-        # Формируем список результатов
-        results = [
-            {
-                "title": item["snippet"]["title"],
-                "url": f"https://www.youtube.com/watch?v={item['id']['videoId']}"
-            }
-            for item in data["items"]
-        ]
-        
-        return results
-    else:
-        # Если запрос не удался, возвращаем ошибку
-        return {"error": "Не удалось выполнить запрос к YouTube API"}
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            if message["type"] == "play":
+                global current_track
+                current_track = message["track"]
+                
+                # Отправляем текущий трек всем клиентам
+                for client in clients:
+                    await client.send_text(json.dumps({"type": "play", "track": current_track}))
+    except Exception as e:
+        clients.remove(websocket)
+        print(f"Ошибка: {e}")

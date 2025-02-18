@@ -3,24 +3,26 @@ const searchButton = document.getElementById('search-button');
 const resultsDiv = document.getElementById('results');
 const audioPlayer = document.getElementById('audio-player');
 
+let socket = null;
+
+// Подключаемся к WebSocket
+function connectWebSocket() {
+    socket = new WebSocket(`wss://ваш-backend-урл/ws`);
+    
+    socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === "play") {
+            audioPlayer.src = message.track.url;
+            audioPlayer.play();
+        }
+    };
+}
+
 // Функция для поиска музыки
 async function searchMusic(query) {
-    if (!query) {
-        alert("Введите запрос для поиска");
-        return;
-    }
-
-    try {
-        const response = await fetch(`https://benzo-7l47.onrender.com/search?q=${query}`);
-        if (!response.ok) {
-            throw new Error(`Ошибка HTTP: ${response.status}`);
-        }
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error("Ошибка при выполнении запроса:", error);
-        return [];
-    }
+    const response = await fetch(`https://ваш-backend-урл/search?q=${query}`);
+    const data = await response.json();
+    return data;
 }
 
 // Обработчик кнопки поиска
@@ -31,36 +33,24 @@ searchButton.addEventListener('click', async () => {
     resultsDiv.innerHTML = ''; // Очищаем предыдущие результаты
 
     results.forEach(item => {
-        if (!item.url) {
-            console.error("Некорректные данные:", item);
-            return;
-        }
-
-        // Создаем кнопку с заставкой и названием
         const resultButton = document.createElement('button');
         resultButton.className = 'result-button';
+        resultButton.style.backgroundImage = `url(${item.thumbnail})`;
 
-        // Устанавливаем заставку (если есть) или используем заглушку
-        const thumbnail = item.thumbnail || "https://via.placeholder.com/150";
-        resultButton.style.backgroundImage = `url(${thumbnail})`;
-
-        // Добавляем название поверх кнопки
         const title = document.createElement('div');
         title.className = 'result-title';
         title.textContent = item.title;
         resultButton.appendChild(title);
 
-        // Обработчик клика по кнопке
         resultButton.addEventListener('click', () => {
-            if (item.url) {
-                audioPlayer.src = item.url;
-                audioPlayer.play();
-            } else {
-                console.error("URL для воспроизведения не найден");
+            if (socket) {
+                socket.send(JSON.stringify({ type: "play", track: item }));
             }
         });
 
-        // Добавляем кнопку в контейнер результатов
         resultsDiv.appendChild(resultButton);
     });
 });
+
+// Подключаемся к WebSocket при загрузке страницы
+connectWebSocket();
