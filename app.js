@@ -44,4 +44,3 @@ searchButton.addEventListener('click', async () => {
 });
 
 // Инициализация Telegram Web App
-Telegram.WebApp.ready();
