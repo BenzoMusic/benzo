@@ -18,12 +18,28 @@ searchButton.addEventListener('click', async () => {
     resultsDiv.innerHTML = ''; // Очищаем предыдущие результаты
 
     results.forEach(item => {
-        const resultItem = document.createElement('div');
-        resultItem.textContent = item.title;
-        resultItem.addEventListener('click', () => {
+        // Создаем кнопку с заставкой и названием
+        const resultButton = document.createElement('button');
+        resultButton.className = 'result-button';
+        
+        // Устанавливаем заставку как фоновое изображение
+        resultButton.style.backgroundImage = `url(${item.thumbnail})`;
+        
+        // Добавляем название поверх кнопки
+        const title = document.createElement('div');
+        title.className = 'result-title';
+        title.textContent = item.title;
+        resultButton.appendChild(title);
+
+        // Обработчик клика по кнопке
+        resultButton.addEventListener('click', () => {
+            // Воспроизводим звук из видео
             audioPlayer.src = item.url;
+            audioPlayer.play();
         });
-        resultsDiv.appendChild(resultItem);
+
+        // Добавляем кнопку в контейнер результатов
+        resultsDiv.appendChild(resultButton);
     });
 });
 
