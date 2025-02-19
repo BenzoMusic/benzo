@@ -16,7 +16,7 @@ def update_state():
     global player_state
     data = request.json
     player_state.update(data)
-    socketio.emit('state_update', player_state)  # Отправляем обновление всем
+    socketio.emit('state_update', player_state)
     return jsonify({"status": "success"})
 
 @app.route('/get_state', methods=['GET'])
@@ -25,7 +25,7 @@ def get_state():
 
 @socketio.on('connect')
 def handle_connect():
-    socketio.emit('state_update', player_state)  # Отправляем состояние новому пользователю
+    socketio.emit('state_update', player_state)
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000)
