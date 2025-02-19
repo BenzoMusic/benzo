@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
+from flask_cors import CORS  # Импортируем CORS
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+CORS(app)  # Разрешаем CORS для всех запросов
+socketio = SocketIO(app, cors_allowed_origins="*")  # Разрешаем CORS для WebSocket
 
 # Текущее состояние плеера
 player_state = {
@@ -31,7 +33,7 @@ def add_track():
     global tracks
     data = request.json
     tracks.append(data)
-    socketio.emit('track_list_update', tracks)  # Отправляем обновленный список треков всем
+    socketio.emit('track_list_update', tracks)
     return jsonify({"status": "success"})
 
 @app.route('/get_tracks', methods=['GET'])
