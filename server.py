@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
+from flask_cors import CORS  # Импортируем CORS
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+CORS(app)  # Включаем CORS для всего приложения
+socketio = SocketIO(app, cors_allowed_origins="*")  # Разрешаем все источники для SocketIO
 
 # Текущее состояние плеера
 player_state = {
