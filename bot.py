@@ -6,7 +6,7 @@ import requests
 BOT_TOKEN = '7836922267:AAEh99TfVahcs-Tfoqy8H8IYdfhprCIqWZ8'
 
 # URL сервера (пока локальный)
-SERVER_URL = 'http://localhost:5000'
+SERVER_URL = 'https://benzo-7l47.onrender.com'
 
 async def start(update: Update, context: CallbackContext):
     await update.message.reply_text(
