@@ -1,47 +1,48 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
-import requests
 import os
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import requests
 
-# Замени на свой API-токен
-BOT_TOKEN = '7836922267:AAEh99TfVahcs-Tfoqy8H8IYdfhprCIqWZ8'
+# URL сервера
+SERVER_URL = 'https://benzo-7l47.onrender.com'
 
-# URL сервера (пока локальный)
-SERVER_URL = 'https://benzo-7l47.onrender.com'  # Поменяй на Render URL после деплоя
-
-async def start(update: Update, context: CallbackContext):
+# Обработчик команды /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Привет! Я бот для синхронизации музыки. Отправь мне аудиофайл или ссылку на SoundCloud."
+        "Привет! Отправь мне ссылку на SoundCloud, и я добавлю её в список."
     )
 
-async def handle_message(update: Update, context: CallbackContext):
-    # Обработка аудиофайлов
-    if update.message.audio:
-        file_id = update.message.audio.file_id
-        file = await context.bot.get_file(file_id)
-        file_url = file.file_path
+# Обработчик для SoundCloud ссылок
+async def handle_soundcloud_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.message.from_user.id)
+    link = update.message.text
 
-        # Добавляем трек на сервер
-        track_data = {
-            "id": file_id,
-            "title": update.message.audio.title or "Без названия",
-            "artist": update.message.audio.performer or "Неизвестный исполнитель",
-            "url": file_url
-        }
-        response = requests.post(f'{SERVER_URL}/add_track', json=track_data)
+    # Проверяем, является ли ссылка на SoundCloud
+    if "soundcloud.com" in link:
+        # Отправляем ссылку на сервер
+        response = requests.post(f'{SERVER_URL}/add_link', json={"user_id": user_id, "link": link})
         if response.status_code == 200:
-            await update.message.reply_text(f"Трек добавлен: {track_data['title']}")
+            await update.message.reply_text(f"Ссылка добавлена: {link}")
         else:
-            await update.message.reply_text("Ошибка при добавлении трека.")
-
-    # Обработка ссылок на SoundCloud (позже)
-    elif update.message.text and 'soundcloud.com' in update.message.text:
-        await update.message.reply_text("Ссылка на SoundCloud будет обработана позже.")
+            await update.message.reply_text("Ошибка при добавлении ссылки.")
     else:
-        await update.message.reply_text("Отправь мне аудиофайл или ссылку на SoundCloud.")
+        await update.message.reply_text("Это не ссылка на SoundCloud. Пожалуйста, отправь правильную ссылку.")
 
+# Обработчик для удаления ссылок при выходе пользователя
+async def clear_links_on_exit(user_id: str):
+    response = requests.post(f'{SERVER_URL}/clear_links', json={"user_id": user_id})
+    if response.status_code == 200:
+        print(f"Ссылки для пользователя {user_id} очищены.")
+    else:
+        print(f"Ошибка при очистке ссылок для пользователя {user_id}.")
+
+# Запуск бота
 if __name__ == '__main__':
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = ApplicationBuilder().token("7836922267:AAEh99TfVahcs-Tfoqy8H8IYdfhprCIqWZ8").build()
+
+    # Регистрируем обработчики
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.ALL, handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_soundcloud_link))
+
+    # Запускаем бота
     app.run_polling()
