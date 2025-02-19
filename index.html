@@ -8,6 +8,9 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
         button { padding: 10px 20px; margin: 10px; }
+        .track-list { margin: 20px auto; max-width: 400px; text-align: left; }
+        .track-item { padding: 10px; border-bottom: 1px solid #ccc; }
+        .track-item:hover { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
@@ -16,8 +19,14 @@
     <button id="playPauseBtn">Play/Pause</button>
     <button id="nextBtn">Next</button>
 
+    <!-- Список треков -->
+    <div class="track-list">
+        <h2>Доступные треки</h2>
+        <div id="tracks"></div>
+    </div>
+
     <script>
-        const socket = io('https://benzo-7l47.onrender.com');
+        const socket = io('http://localhost:5000');  // Поменяй на Render URL после деплоя
 
         // Обновление состояния плеера
         socket.on('state_update', (state) => {
@@ -25,6 +34,26 @@
                 `Сейчас играет: ${state.current_track || 'Нет трека'}\n` +
                 `Состояние: ${state.is_playing ? 'Играет' : 'На паузе'}`;
         });
+
+        // Обновление списка треков
+        socket.on('track_list_update', (tracks) => {
+            const tracksContainer = document.getElementById('tracks');
+            tracksContainer.innerHTML = '';
+            tracks.forEach((track, index) => {
+                const trackItem = document.createElement('div');
+                trackItem.className = 'track-item';
+                trackItem.innerHTML = `
+                    <strong>${track.title}</strong> - ${track.artist}
+                    <button onclick="selectTrack('${track.id}')">Выбрать</button>
+                `;
+                tracksContainer.appendChild(trackItem);
+            });
+        });
+
+        // Функция для выбора трека
+        function selectTrack(trackId) {
+            socket.emit('update_state', { current_track: trackId });
+        }
 
         // Кнопки управления
         document.getElementById('playPauseBtn').onclick = () => {
@@ -34,6 +63,13 @@
         document.getElementById('nextBtn').onclick = () => {
             socket.emit('update_state', { current_track: 'Следующий трек' });
         };
+
+        // Запрашиваем список треков при загрузке страницы
+        fetch(`${SERVER_URL}/get_tracks`)
+            .then(response => response.json())
+            .then(tracks => {
+                socket.emit('track_list_update', tracks);
+            });
     </script>
 </body>
 </html>
